@@ -1,0 +1,29 @@
+{
+  "skill_name": "resume-claude-here",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Bring in the Claude Code session where we researched desktop knowledge management apps last weekend. I want the useful context in this conversation, not a new session.",
+      "expected_output": "Searches past sessions from the natural-language hint, identifies likely candidates, exports or stages the best matching transcript slice, and imports only the relevant context into the current conversation.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Resume my most recent Claude session in this repo and fork it so I can continue in a fresh conversation.",
+      "expected_output": "Uses current-directory context, selects the latest matching session, and resumes it with --fork-session rather than importing transcript text into the active conversation.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Find the Claude session about oauth in payments-api from earlier this week. There may be more than one, so show me the best options first.",
+      "expected_output": "Runs a ranked search, presents a short disambiguation list with timestamps/project hints and reasons, and avoids guessing when multiple candidates are close.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Take that long Claude session from pdfwiki research and save it to a file so we can read it in chunks here.",
+      "expected_output": "Chooses staged import, exports the transcript to a file, and uses that file as the transport instead of dumping a huge raw transcript directly into the conversation.",
+      "files": []
+    }
+  ]
+}

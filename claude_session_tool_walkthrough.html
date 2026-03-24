@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude_session_tool.py — Learn Python by Reading Real Code</title>
+  <style>
+    :root {
+      --bg: #f2eadf;
+      --panel: rgba(255, 251, 245, 0.86);
+      --panel-strong: rgba(255, 248, 239, 0.96);
+      --ink: #1f2430;
+      --muted: #6b6b6b;
+      --accent: #b5522d;
+      --accent-soft: rgba(181, 82, 45, 0.14);
+      --accent-strong: rgba(181, 82, 45, 0.24);
+      --slate: #20303c;
+      --slate-soft: #2f4352;
+      --code-bg: #10161d;
+      --code-line: #dfe8f1;
+      --code-dim: #647383;
+      --code-hi: rgba(252, 184, 101, 0.16);
+      --border: rgba(32, 48, 60, 0.12);
+      --shadow: 0 22px 70px rgba(41, 27, 13, 0.12);
+      --radius: 24px;
+      --mono: "SF Mono", "Cascadia Code", "Consolas", monospace;
+      --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+      --sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      --green: #2d8a4e;
+      --green-soft: rgba(45, 138, 78, 0.12);
+      --blue: #2d6fb5;
+      --blue-soft: rgba(45, 111, 181, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top left, rgba(181, 82, 45, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(32, 48, 60, 0.12), transparent 24%),
+        linear-gradient(180deg, #f7f0e6 0%, var(--bg) 100%);
+    }
+
+    .page { max-width: 1800px; margin: 0 auto; padding: 28px; }
+
+    /* ── Hero ── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .hero-card, .hero-stats, .sidebar, .code-card, .explain-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .hero-card { padding: 28px 30px; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 16px 0 12px;
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 3.5vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-card p, .hero-stats p, .panel-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hero-stats {
+      padding: 24px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+      color: var(--slate);
+    }
+
+    /* ── Navigation strip (sticky above panels) ── */
+    .nav-strip {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .nav-strip-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .nav-strip-header h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .tab-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn, .lesson-btn {
+      border: 0;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .tab-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(32, 48, 60, 0.06);
+      color: var(--slate);
+      font-weight: 700;
+      font-size: 0.92rem;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--slate);
+      color: #fff7ef;
+    }
+
+    .lesson-list {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scroll-snap-type: x proximity;
+    }
+
+    .lesson-btn {
+      flex: 0 0 auto;
+      width: 260px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid transparent;
+      scroll-snap-align: start;
+    }
+
+    .lesson-btn:hover, .lesson-btn.active {
+      transform: translateY(-1px);
+      background: var(--panel-strong);
+      border-color: rgba(181, 82, 45, 0.28);
+    }
+
+    .lesson-btn small {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .lesson-btn strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 3px;
+      font-size: 0.9rem;
+      line-height: 1.3;
+    }
+
+    .lesson-btn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── Content layout (full width, 2-column) ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .code-head h2, .explain-head h2 {
+      margin: 0 0 8px;
+      font-family: var(--serif);
+      font-size: 1.45rem;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── Code panel ── */
+    .code-card, .explain-card { overflow: hidden; }
+
+    .code-head, .explain-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-strong);
+    }
+
+    .code-head p, .explain-head p { margin: 0; color: var(--muted); }
+
+    .code-window {
+      background: var(--code-bg);
+      color: var(--code-line);
+      min-height: 780px;
+      max-height: calc(100vh - 170px);
+      overflow: auto;
+      padding: 14px 0 20px;
+      font-family: var(--mono);
+    }
+
+    .code-line {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      white-space: pre-wrap;
+      padding: 0 18px;
+      min-height: 1.65em;
+      color: var(--code-dim);
+      transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+    }
+
+    .code-line .num {
+      color: rgba(223, 232, 241, 0.35);
+      user-select: none;
+      text-align: right;
+      padding-right: 10px;
+      border-right: 1px solid rgba(223, 232, 241, 0.08);
+    }
+
+    .code-line.active { color: var(--code-line); background: var(--code-hi); }
+    .code-line.active .num { color: rgba(252, 215, 170, 0.92); }
+    .code-line.dimmed { opacity: 0.48; }
+
+    /* ── Explanation panel ── */
+    .explain-card {
+      min-height: 780px;
+      max-height: calc(100vh - 170px);
+      overflow: auto;
+      background: linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(249, 242, 232, 0.92));
+    }
+
+    .explain-body { padding: 24px; display: grid; gap: 18px; }
+
+    .range-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      width: fit-content;
+    }
+
+    .big-takeaway {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .card {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--slate);
+    }
+
+    .card ul { margin: 0; padding-left: 18px; color: var(--ink); line-height: 1.55; }
+    .card p { margin: 0; color: var(--ink); line-height: 1.55; }
+
+    .line-notes { display: grid; gap: 10px; }
+
+    .line-note {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(32, 48, 60, 0.045);
+      border: 1px solid rgba(32, 48, 60, 0.08);
+    }
+
+    .line-note strong { color: var(--accent); display: block; margin-bottom: 4px; }
+    .line-note p { margin: 0; color: var(--ink); line-height: 1.5; }
+
+    /* ── Terminal example blocks ── */
+    .terminal {
+      padding: 16px;
+      border-radius: 16px;
+      background: var(--code-bg);
+      color: var(--code-line);
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .terminal .prompt { color: var(--green); }
+    .terminal .output { color: var(--code-dim); }
+    .terminal .error { color: #e06c60; }
+    .terminal .comment { color: #5c7080; font-style: italic; }
+
+    /* ── Confusion callout ── */
+    .confusion {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(181, 82, 45, 0.06);
+      border: 1px solid rgba(181, 82, 45, 0.18);
+      border-left: 4px solid var(--accent);
+    }
+
+    .confusion strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--accent);
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .confusion p { margin: 0; color: var(--ink); line-height: 1.55; }
+
+    /* ── Diagram blocks ── */
+    .diagram {
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(45, 111, 181, 0.05);
+      border: 1px solid rgba(45, 111, 181, 0.15);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--slate);
+    }
+
+    .footer-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    code.inline {
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(32, 48, 60, 0.08);
+      font-family: var(--mono);
+      font-size: 0.92em;
+    }
+
+    @media (max-width: 1020px) {
+      .layout { grid-template-columns: 1fr; }
+      .code-window, .explain-card { max-height: none; }
+    }
+
+    @media (max-width: 840px) {
+      .hero { grid-template-columns: 1fr; }
+      .page { padding: 16px; }
+      .code-line { grid-template-columns: 52px minmax(0, 1fr); gap: 10px; }
+      .lesson-btn { width: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <article class="hero-card">
+        <span class="eyebrow">Learn Python from Real Code</span>
+        <h1>Walking through <code class="inline">claude_session_tool.py</code> line by line.</h1>
+        <p>
+          This is a 635-line Python script that searches and exports Claude Code sessions.
+          Instead of toy examples, you'll learn argparse, dataclasses, generators, file I/O,
+          and text scoring by reading code that actually runs in production.
+          Pick a chapter from the strip above the panels. The code highlights the relevant lines
+          and the explanation panel breaks down exactly what those lines do.
+        </p>
+      </article>
+      <aside class="hero-stats">
+        <p class="panel-copy">Each chapter focuses on one concept. Terminal examples show you what actually happens when you run the code.</p>
+        <div class="stat-grid">
+          <div class="stat">
+            <strong>635</strong>
+            <span>Lines of Python</span>
+          </div>
+          <div class="stat">
+            <strong>14</strong>
+            <span>Teaching chapters</span>
+          </div>
+          <div class="stat">
+            <strong>0</strong>
+            <span>External dependencies</span>
+          </div>
+          <div class="stat">
+            <strong>4</strong>
+            <span>Ways to browse</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <nav class="nav-strip">
+      <div class="nav-strip-header">
+        <h2>Chapters</h2>
+        <div class="tab-row" id="tabs"></div>
+      </div>
+      <div class="lesson-list" id="lesson-list"></div>
+    </nav>
+
+    <section class="layout">
+      <section class="code-card">
+        <div class="code-head">
+          <h2>Code</h2>
+          <p id="code-caption">Highlighted lines match the active chapter.</p>
+        </div>
+        <div class="code-window" id="code-window"></div>
+      </section>
+
+      <section class="explain-card">
+        <div class="explain-head">
+          <h2>Explanation</h2>
+          <p id="lesson-kicker">What these lines do and how to understand them.</p>
+        </div>
+        <div class="explain-body" id="explain-body"></div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const sourceCode = `#!/usr/bin/env python3
+"""Search and export Claude Code sessions from local persistence."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from collections import Counter
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from difflib import SequenceMatcher
+from pathlib import Path
+from typing import Iterable
+
+
+STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "at",
+    "bring",
+    "chat",
+    "claude",
+    "code",
+    "continue",
+    "conversation",
+    "for",
+    "from",
+    "here",
+    "i",
+    "in",
+    "into",
+    "it",
+    "last",
+    "my",
+    "new",
+    "of",
+    "old",
+    "on",
+    "one",
+    "open",
+    "previous",
+    "prior",
+    "project",
+    "pull",
+    "resume",
+    "session",
+    "that",
+    "the",
+    "this",
+    "to",
+    "we",
+    "with",
+    "work",
+}
+
+# Higher number = preferred when two files contain the same session.
+SOURCE_PRIORITY = {"explicit": 4, "project": 3, "transcript": 2, "subagent": 1}
+DEFAULT_RESULT_LIMIT = 8
+RECENT_USER_TEXT_LIMIT = 3
+EXACT_MATCH_SCORE = 80.0
+TOKEN_MATCH_SCORE = 12.0
+TOKEN_MATCH_CAP = 48.0
+FUZZY_MATCH_MULTIPLIER = 35.0
+SAME_CWD_SCORE = 50.0
+SAME_REPO_SCORE = 25.0
+SAME_BASENAME_SCORE = 10.0
+
+# Type alias so function signatures read more clearly.
+JsonObject = dict[str, object]
+
+
+@dataclass
+class MessageEntry:
+    """One user-visible message extracted from a Claude transcript."""
+
+    role: str
+    timestamp: str
+    text: str
+    kind: str = "message"
+
+
+@dataclass
+class SessionSummary:
+    """Normalized metadata and extracted content for one Claude session."""
+
+    session_id: str
+    source_file: Path
+    source_kind: str
+    title: str | None = None
+    slug: str | None = None
+    cwd: str | None = None
+    git_branch: str | None = None
+    last_timestamp: str | None = None
+    first_timestamp: str | None = None
+    first_user_text: str | None = None
+    recent_user_texts: list[str] = field(default_factory=list)
+    message_count: int = 0
+    user_count: int = 0
+    assistant_count: int = 0
+    entries: list[MessageEntry] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
+    score: float = 0.0
+
+
+def parse_args() -> argparse.Namespace:
+    """Build and parse the command-line interface."""
+
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    search = subparsers.add_parser(
+        "search",
+        help="Search and rank sessions",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    search.add_argument("--query", required=True, help="Natural-language session hint")
+    search.add_argument("--cwd", help="Current working directory for rank boosting")
+    search.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_RESULT_LIMIT,
+        help="Maximum results to return",
+    )
+    search.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit JSON instead of a text shortlist",
+    )
+
+    export = subparsers.add_parser(
+        "export",
+        help="Export a session transcript",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    export.add_argument(
+        "--session",
+        required=True,
+        help="Session ID or path to a session jsonl",
+    )
+    export.add_argument(
+        "--format",
+        choices=("markdown", "json"),
+        default="markdown",
+        help="Export format",
+    )
+    export.add_argument(
+        "--tail",
+        type=int,
+        default=0,
+        help="Export only the last N message entries; 0 means all",
+    )
+    export.add_argument(
+        "--include-tool-results",
+        action="store_true",
+        help="Include tool result payloads when available",
+    )
+    export.add_argument("--output", help="Write export to a file instead of stdout")
+
+    return parser.parse_args()
+
+
+def discover_session_files() -> list[tuple[Path, str]]:
+    """Return candidate session files with their inferred source kinds."""
+
+    home = Path.home()
+    files: list[tuple[Path, str]] = []
+
+    projects_root = home / ".claude" / "projects"
+    if projects_root.exists():
+        for path in projects_root.rglob("*.jsonl"):
+            kind = "subagent" if "subagents" in path.parts else "project"
+            files.append((path, kind))
+
+    transcripts_root = home / ".claude" / "transcripts"
+    if transcripts_root.exists():
+        for path in transcripts_root.glob("*.jsonl"):
+            files.append((path, "transcript"))
+
+    return files
+
+
+def load_json_lines(path: Path) -> Iterable[JsonObject]:
+    """Yield decoded JSON objects from a jsonl file, skipping invalid lines."""
+
+    with path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                yield json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+
+def extract_text(content: object, include_tool_results: bool = False) -> str:
+    """Normalize Claude message content into plain text."""
+
+    if isinstance(content, str):
+        return content.strip()
+
+    if not isinstance(content, list):
+        return ""
+
+    parts: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        item_type = item.get("type")
+        if item_type == "text":
+            text = str(item.get("text", "")).strip()
+            if text:
+                parts.append(text)
+        elif item_type == "tool_result" and include_tool_results:
+            text = str(item.get("content", "")).strip()
+            if text:
+                parts.append(f"[tool_result]\\n{text}")
+    return "\\n".join(parts).strip()
+
+
+def summarize_session(
+    path: Path,
+    kind: str,
+    include_tool_results: bool = False,
+) -> SessionSummary | None:
+    """Summarize one session file into normalized metadata and message entries."""
+
+    summary: SessionSummary | None = None
+    cwd_counter: Counter[str] = Counter()
+    user_texts: list[str] = []
+
+    for record in load_json_lines(path):
+        # Claude stores session IDs under different keys depending on file format.
+        session_id = (
+            record.get("sessionId")
+            or record.get("session_id")
+            or path.stem
+        )
+        if summary is None:
+            summary = SessionSummary(
+                session_id=str(session_id),
+                source_file=path,
+                source_kind=kind,
+            )
+
+        timestamp = str(record.get("timestamp", ""))
+        if timestamp:
+            if not summary.first_timestamp or timestamp < summary.first_timestamp:
+                summary.first_timestamp = timestamp
+            if not summary.last_timestamp or timestamp > summary.last_timestamp:
+                summary.last_timestamp = timestamp
+
+        if record.get("type") == "ai-title":
+            summary.title = str(record.get("aiTitle") or "").strip() or summary.title
+
+        if record.get("slug"):
+            summary.slug = str(record.get("slug"))
+
+        cwd = record.get("cwd")
+        if isinstance(cwd, str) and cwd:
+            cwd_counter[cwd] += 1
+
+        git_branch = record.get("gitBranch")
+        if isinstance(git_branch, str) and git_branch:
+            summary.git_branch = git_branch
+
+        role = None
+        message = record.get("message")
+        if isinstance(message, dict):
+            role = message.get("role")
+            text = extract_text(
+                message.get("content"),
+                include_tool_results=include_tool_results,
+            )
+        else:
+            role = record.get("type")
+            text = ""
+
+        if role in ("user", "assistant") and text:
+            summary.message_count += 1
+            if role == "user":
+                summary.user_count += 1
+                user_texts.append(text)
+                if not summary.first_user_text and not record.get("isMeta"):
+                    summary.first_user_text = text
+            elif role == "assistant":
+                summary.assistant_count += 1
+            summary.entries.append(
+                MessageEntry(role=role, timestamp=timestamp, text=text)
+            )
+
+    if summary is None:
+        return None
+
+    # Pick whichever cwd appeared most often across all records.
+    if cwd_counter:
+        summary.cwd = cwd_counter.most_common(1)[0][0]
+
+    summary.recent_user_texts = user_texts[-RECENT_USER_TEXT_LIMIT:]
+    return summary
+
+
+def tokenize(text: str) -> list[str]:
+    """Split text into lowercase searchable tokens with domain stop words removed."""
+
+    return [
+        token
+        for token in re.findall(r"[a-z0-9][a-z0-9._/-]+", text.lower())
+        if token not in STOP_WORDS and len(token) > 1
+    ]
+
+
+def basename_hint(path_str: str | None) -> str:
+    """Return the last path component when available."""
+
+    if not path_str:
+        return ""
+    return Path(path_str.rstrip("/")).name
+
+
+def session_search_blob(session: SessionSummary) -> str:
+    """Build the text blob used for ranking a session against a query."""
+
+    fields = [
+        session.title or "",
+        session.slug or "",
+        session.cwd or "",
+        basename_hint(session.cwd),
+        session.git_branch or "",
+        session.first_user_text or "",
+        " ".join(session.recent_user_texts),
+    ]
+    return "\\n".join(x for x in fields if x).lower()
+
+
+def parse_timestamp(value: str | None) -> datetime | None:
+    """Parse ISO-like timestamps used in Claude transcript files."""
+
+    if not value:
+        return None
+    value = value.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def recency_score(timestamp: str | None) -> float:
+    """Return a freshness bonus based on how recently a session was active."""
+
+    dt = parse_timestamp(timestamp)
+    if dt is None:
+        return 0.0
+    age_hours = max(
+        (
+            datetime.now(timezone.utc) - dt.astimezone(timezone.utc)
+        ).total_seconds()
+        / 3600,
+        0.0,
+    )
+    # Stepped bonus: recent sessions get a bigger boost.
+    if age_hours <= 24:
+        return 20.0
+    if age_hours <= 24 * 7:
+        return 12.0
+    if age_hours <= 24 * 30:
+        return 6.0
+    return 0.0
+
+
+def score_session(session: SessionSummary, query: str, cwd: str | None) -> float:
+    """Score one session against the user's query and current working directory."""
+
+    blob = session_search_blob(session)
+    query_lower = query.lower().strip()
+    query_tokens = tokenize(query)
+    blob_tokens = set(tokenize(blob))
+
+    score = 0.0
+    reasons: list[str] = []
+
+    if query_lower and query_lower in blob:
+        score += EXACT_MATCH_SCORE
+        reasons.append("exact phrase match")
+
+    overlap = [token for token in query_tokens if token in blob_tokens]
+    if overlap:
+        overlap_score = min(TOKEN_MATCH_SCORE * len(overlap), TOKEN_MATCH_CAP)
+        score += overlap_score
+        reasons.append("token match: " + ", ".join(overlap[:4]))
+
+    # ratio() returns 0.0\u20131.0 measuring overall similarity between two strings.
+    seq = SequenceMatcher(None, query_lower, blob).ratio()
+    if seq >= 0.2:
+        fuzzy = round(seq * FUZZY_MATCH_MULTIPLIER, 1)
+        score += fuzzy
+        reasons.append(f"fuzzy similarity {seq:.2f}")
+
+    if cwd and session.cwd:
+        cwd_path = Path(cwd).expanduser().resolve()
+        session_path = Path(session.cwd).expanduser()
+        try:
+            session_resolved = session_path.resolve()
+        except FileNotFoundError:
+            session_resolved = session_path
+
+        if str(session_resolved) == str(cwd_path):
+            score += SAME_CWD_SCORE
+            reasons.append("same cwd")
+        elif str(session_resolved).startswith(
+            str(cwd_path)
+        ) or str(cwd_path).startswith(str(session_resolved)):
+            score += SAME_REPO_SCORE
+            reasons.append("same repo path")
+        elif basename_hint(str(session_resolved)) == basename_hint(str(cwd_path)):
+            score += SAME_BASENAME_SCORE
+            reasons.append("same cwd basename")
+
+    recency = recency_score(session.last_timestamp)
+    score += recency
+    if recency > 0:
+        reasons.append("recent activity")
+
+    session.score = round(score, 1)
+    session.reasons = reasons
+    return session.score
+
+
+def should_replace_summary(
+    current: SessionSummary,
+    challenger: SessionSummary,
+) -> bool:
+    """Decide whether one candidate summary should replace another."""
+
+    current_priority = SOURCE_PRIORITY.get(current.source_kind, 0)
+    challenger_priority = SOURCE_PRIORITY.get(challenger.source_kind, 0)
+    # Tiebreak order: higher score > higher source priority > more entries.
+    return (
+        challenger.score > current.score
+        or (
+            challenger.score == current.score
+            and challenger_priority > current_priority
+        )
+        or (
+            challenger.score == current.score
+            and challenger_priority == current_priority
+            and len(challenger.entries) > len(current.entries)
+        )
+    )
+
+
+def search_sessions(query: str, cwd: str | None, limit: int) -> list[SessionSummary]:
+    """Search, score, deduplicate, and rank sessions."""
+
+    best_by_session: dict[str, SessionSummary] = {}
+    for path, kind in discover_session_files():
+        session = summarize_session(path, kind)
+        if session is None:
+            continue
+        score_session(session, query, cwd)
+        if session.score > 0:
+            existing = best_by_session.get(session.session_id)
+            if existing is None:
+                best_by_session[session.session_id] = session
+                continue
+            if should_replace_summary(existing, session):
+                best_by_session[session.session_id] = session
+
+    sessions = list(best_by_session.values())
+    sessions.sort(key=lambda item: (item.score, item.last_timestamp or ""), reverse=True)
+    return sessions[:limit]
+
+
+def text_preview(session: SessionSummary) -> str:
+    """Render one ranked session as a compact terminal-friendly line."""
+
+    title = session.title or session.slug or basename_hint(session.cwd) or session.session_id
+    when = session.last_timestamp or "unknown time"
+    cwd = basename_hint(session.cwd) or session.cwd or "unknown cwd"
+    reasons = "; ".join(session.reasons[:3]) if session.reasons else "metadata match"
+    return (
+        f"{title} | {when} | cwd={cwd} | score={session.score:.1f} | "
+        f"session={session.session_id} | {reasons}"
+    )
+
+
+def session_lookup(
+    identifier: str,
+    include_tool_results: bool = False,
+) -> SessionSummary:
+    """Resolve a session by explicit path, session ID, title, or slug."""
+
+    path = Path(identifier).expanduser()
+    if path.exists():
+        session = summarize_session(
+            path,
+            "explicit",
+            include_tool_results=include_tool_results,
+        )
+        if session is None:
+            raise SystemExit(f"Could not parse session file: {path}")
+        return session
+
+    for candidate_path, kind in discover_session_files():
+        session = summarize_session(
+            candidate_path,
+            kind,
+            include_tool_results=include_tool_results,
+        )
+        if session is None:
+            continue
+        title = session.title or ""
+        if identifier in {session.session_id, title, session.slug or ""}:
+            return session
+
+    raise SystemExit(f"Session not found: {identifier}")
+
+
+def selected_entries(session: SessionSummary, tail: int) -> list[MessageEntry]:
+    """Return the entry slice requested by the caller."""
+
+    if tail > 0:
+        return session.entries[-tail:]
+    return session.entries
+
+
+def export_markdown(session: SessionSummary, tail: int) -> str:
+    """Render a session as Markdown."""
+
+    entries = selected_entries(session, tail)
+    title = session.title or session.slug or session.session_id
+    lines = [
+        f"# Claude Session Export: {title}",
+        "",
+        f"- Session ID: \\\`{session.session_id}\\\`",
+        f"- Source: \\\`{session.source_file}\\\`",
+        f"- Source kind: \\\`{session.source_kind}\\\`",
+        f"- CWD: \\\`{session.cwd or 'unknown'}\\\`",
+        f"- Git branch: \\\`{session.git_branch or 'unknown'}\\\`",
+        f"- First activity: \\\`{session.first_timestamp or 'unknown'}\\\`",
+        f"- Last activity: \\\`{session.last_timestamp or 'unknown'}\\\`",
+        f"- Messages exported: \\\`{len(entries)}\\\`",
+        "",
+    ]
+
+    for entry in entries:
+        lines.append(f"## {entry.role.title()} | {entry.timestamp or 'unknown time'}")
+        lines.append("")
+        lines.append(entry.text.strip())
+        lines.append("")
+
+    return "\\n".join(lines).rstrip() + "\\n"
+
+
+def export_json(session: SessionSummary, tail: int) -> str:
+    """Render a session as JSON."""
+
+    entries = selected_entries(session, tail)
+    payload = {
+        "session_id": session.session_id,
+        "title": session.title,
+        "slug": session.slug,
+        "cwd": session.cwd,
+        "git_branch": session.git_branch,
+        "first_timestamp": session.first_timestamp,
+        "last_timestamp": session.last_timestamp,
+        "message_count": len(entries),
+        "entries": [
+            {
+                "role": entry.role,
+                "timestamp": entry.timestamp,
+                "text": entry.text,
+            }
+            for entry in entries
+        ],
+    }
+    return json.dumps(payload, indent=2) + "\\n"
+
+
+def write_output(content: str, output: str | None) -> None:
+    """Write content to stdout or to a file path."""
+
+    if output:
+        out_path = Path(output).expanduser()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(content, encoding="utf-8")
+        print(str(out_path))
+        return
+    sys.stdout.write(content)
+
+
+def main() -> None:
+    """Dispatch CLI commands."""
+
+    args = parse_args()
+    if args.command == "search":
+        results = search_sessions(args.query, args.cwd, args.limit)
+        if args.json:
+            payload = [
+                {
+                    "session_id": item.session_id,
+                    "title": item.title,
+                    "slug": item.slug,
+                    "cwd": item.cwd,
+                    "git_branch": item.git_branch,
+                    "last_timestamp": item.last_timestamp,
+                    "score": item.score,
+                    "reasons": item.reasons,
+                    "source_file": str(item.source_file),
+                    "source_kind": item.source_kind,
+                }
+                for item in results
+            ]
+            sys.stdout.write(json.dumps(payload, indent=2) + "\\n")
+            return
+
+        for index, item in enumerate(results, start=1):
+            sys.stdout.write(f"{index}. {text_preview(item)}\\n")
+        return
+
+    if args.command == "export":
+        session = session_lookup(
+            args.session,
+            include_tool_results=args.include_tool_results,
+        )
+        if args.format == "markdown":
+            content = export_markdown(session, args.tail)
+        else:
+            content = export_json(session, args.tail)
+        write_output(content, args.output)
+        return
+
+
+if __name__ == "__main__":
+    main()`;
+
+    // ────────────────────────────────────────────────────────────
+    // LESSON DATA
+    // Each lesson targets a specific concept and explains it concretely.
+    // ────────────────────────────────────────────────────────────
+
+    const lessons = [
+      // ── TAB: Basics ──
+      {
+        id: "basics-orientation",
+        tab: "basics",
+        label: "What this script does",
+        title: "A 30-second orientation before we dive in.",
+        summary: "This script has two commands: 'search' finds Claude sessions by keywords, and 'export' dumps a session to markdown or JSON. Everything in the file supports one of those two jobs.",
+        range: [1, 15],
+        sections: [
+          {
+            type: "text",
+            title: "The big picture",
+            body: "Claude Code stores every conversation as a <code class='inline'>.jsonl</code> file (one JSON object per line) somewhere under <code class='inline'>~/.claude/</code>. This script walks those files, extracts metadata and messages, scores them against your search query, and either prints a ranked list or exports a full transcript."
+          },
+          {
+            type: "terminal",
+            title: "Try it yourself",
+            content: "<span class='prompt'>$</span> python claude_session_tool.py search --query \"auth refactor\"\n<span class='output'>1. auth-refactor | 2026-03-18 21:14 | cwd=payments-api | score=142.3 | session=abc123</span>\n\n<span class='prompt'>$</span> python claude_session_tool.py export --session abc123 --tail 5\n<span class='output'># Claude Session Export: auth-refactor</span>\n<span class='output'>## User | 2026-03-18 21:10</span>\n<span class='output'>Can you refactor the OAuth middleware to use...</span>"
+          },
+          {
+            type: "lines",
+            notes: [
+              ["1", "The shebang line (<code class='inline'>#!/usr/bin/env python3</code>) lets you run the file directly with <code class='inline'>./claude_session_tool.py</code> instead of typing <code class='inline'>python</code> every time. The OS reads this line to find the interpreter."],
+              ["2", "The module docstring. argparse reuses this as the <code class='inline'>--help</code> description, so it does double duty."],
+              ["4", "<code class='inline'>from __future__ import annotations</code> makes all type hints strings at runtime. Without this, <code class='inline'>str | None</code> syntax would crash on Python 3.9. With it, the hints are only checked by type checkers like mypy, not at runtime."],
+              ["6-15", "Every import here is from the standard library. No <code class='inline'>pip install</code> needed. This matters because the script needs to run immediately on any machine that has Python."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "basics-constants",
+        tab: "basics",
+        label: "Constants and config",
+        title: "All the tuning knobs live at the top of the file.",
+        summary: "STOP_WORDS, SOURCE_PRIORITY, and the score weights are defined as module-level constants so they're easy to find and change.",
+        range: [18, 73],
+        sections: [
+          {
+            type: "text",
+            title: "What are these for?",
+            body: "<strong>STOP_WORDS</strong> is a set of words that are too common in session queries to be useful for matching. If someone searches for \"resume that session\", the words \"resume\", \"that\", and \"session\" all match almost everything — so the tokenizer strips them out.<br><br><strong>SOURCE_PRIORITY</strong> maps each file source to a priority number. The same Claude session can appear in multiple files (the projects folder and the transcripts folder). When two files describe the same session with the same score, the one from the higher-priority source wins.<br><br>The score constants (<code class='inline'>EXACT_MATCH_SCORE</code>, etc.) control how much each type of match contributes to ranking. They're numbers you can tweak without reading the scoring function."
+          },
+          {
+            type: "confusion",
+            body: "Why is STOP_WORDS a <code class='inline'>set</code> with curly braces instead of a <code class='inline'>list</code> with square brackets? Because checking <code class='inline'>if word in some_set</code> is O(1) — instant regardless of size. With a list, Python would scan every element. For 40+ words checked on every token, the difference matters."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["18-58", "A set literal. Each line is one string. The trailing comma on the last item is valid Python and makes diffs cleaner when you add/remove words."],
+              ["61", "A dict mapping source names to integers. <code class='inline'>\"explicit\": 4</code> means a file the user pointed to directly is always preferred."],
+              ["62-70", "Named constants for every scoring weight. The alternative would be writing <code class='inline'>80.0</code> inside the scoring function with a comment — this is clearer."],
+              ["73", "A type alias. <code class='inline'>JsonObject</code> is just <code class='inline'>dict[str, object]</code>, but using it in function signatures makes them read as \"takes a JSON object\" instead of \"takes a dict of string to object\"."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "basics-dataclasses",
+        tab: "basics",
+        label: "Dataclasses",
+        title: "MessageEntry and SessionSummary: typed containers for your data.",
+        summary: "Instead of passing dicts with string keys around, the script defines two dataclasses. They give you named fields, type hints, and automatic __init__ / __repr__ for free.",
+        range: [76, 106],
+        sections: [
+          {
+            type: "text",
+            title: "What problem do dataclasses solve?",
+            body: "Without dataclasses, you'd pass dicts like <code class='inline'>{\"role\": \"user\", \"text\": \"hello\"}</code>. That works, but you get zero help from your editor — no autocomplete, no type checking, and a typo like <code class='inline'>msg[\"rolee\"]</code> silently returns <code class='inline'>None</code> instead of crashing.<br><br>A dataclass is a regular Python class where <code class='inline'>@dataclass</code> auto-generates the <code class='inline'>__init__</code>, <code class='inline'>__repr__</code>, and <code class='inline'>__eq__</code> methods from the fields you declare. You just list the fields and their types."
+          },
+          {
+            type: "terminal",
+            title: "What the generated code looks like",
+            content: "<span class='comment'># You write this:</span>\n@dataclass\nclass MessageEntry:\n    role: str\n    timestamp: str\n    text: str\n    kind: str = \"message\"\n\n<span class='comment'># Python generates this behind the scenes:</span>\ndef __init__(self, role: str, timestamp: str, text: str, kind: str = \"message\"):\n    self.role = role\n    self.timestamp = timestamp\n    self.text = text\n    self.kind = kind\n\n<span class='comment'># So you can do:</span>\nmsg = MessageEntry(role=\"user\", timestamp=\"2026-03-18\", text=\"hello\")\nprint(msg.role)   <span class='comment'># \"user\"</span>\nprint(msg.kind)   <span class='comment'># \"message\" (the default)</span>"
+          },
+          {
+            type: "confusion",
+            body: "The mutable default trap: if you write <code class='inline'>entries: list[str] = []</code> on a dataclass, every instance shares the SAME list object. Appending to one instance's list changes all of them. The fix is <code class='inline'>field(default_factory=list)</code>, which calls <code class='inline'>list()</code> fresh for each new instance. Lines 98, 102, and 103 all use this pattern."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["76-83", "<code class='inline'>MessageEntry</code> is intentionally small: four fields. The <code class='inline'>kind</code> field defaults to <code class='inline'>\"message\"</code> so callers only pass it when they need something different."],
+              ["86-106", "<code class='inline'>SessionSummary</code> is the main data object. Almost every function in the script either creates one, reads from one, or writes to one. The first three fields (<code class='inline'>session_id</code>, <code class='inline'>source_file</code>, <code class='inline'>source_kind</code>) are required; everything else has a default."],
+              ["100", "<code class='inline'>field(default_factory=list)</code> — each new SessionSummary gets its own empty list. Without <code class='inline'>default_factory</code>, all instances would share one list."],
+              ["105-106", "<code class='inline'>reasons</code> and <code class='inline'>score</code> start empty/zero. The scoring function fills them in later. Keeping them on the object means you can inspect why a session ranked where it did."]
+            ]
+          }
+        ]
+      },
+
+      // ── TAB: argparse ──
+      {
+        id: "argparse-overview",
+        tab: "argparse",
+        label: "How argparse works",
+        title: "argparse turns terminal commands into a Python object you can read.",
+        summary: "You describe what arguments your script accepts. argparse parses sys.argv, validates the input, generates --help, and returns a Namespace object with all the values as attributes.",
+        range: [109, 166],
+        sections: [
+          {
+            type: "diagram",
+            title: "The mental model",
+            content: "Terminal input:\n  $ python tool.py search --query \"auth\" --limit 5\n\n  sys.argv = [\"tool.py\", \"search\", \"--query\", \"auth\", \"--limit\", \"5\"]\n                  \u2193\n  argparse splits this into:\n    command  = \"search\"\n    query    = \"auth\"\n    limit    = 5           \u2190 converted to int because type=int\n    json     = False       \u2190 not provided, so uses default\n    cwd      = None        \u2190 not provided, no default \u2192 None\n                  \u2193\n  Returns: Namespace(command='search', query='auth', limit=5, json=False, cwd=None)\n                  \u2193\n  Your code reads: args.command, args.query, args.limit"
+          },
+          {
+            type: "text",
+            title: "What argparse does for you",
+            body: "Without argparse, you'd manually index into <code class='inline'>sys.argv</code>, check for missing flags, convert strings to ints, and print usage messages. argparse handles all of that. You call <code class='inline'>parser.add_argument()</code> once per flag, and it generates validation, help text, type conversion, and default values."
+          },
+          {
+            type: "terminal",
+            title: "What --help looks like",
+            content: "<span class='prompt'>$</span> python claude_session_tool.py --help\n<span class='output'>usage: claude_session_tool.py [-h] {search,export} ...</span>\n<span class='output'></span>\n<span class='output'>Search and export Claude Code sessions from local persistence.</span>\n<span class='output'></span>\n<span class='output'>positional arguments:</span>\n<span class='output'>  {search,export}</span>\n<span class='output'>    search          Search and rank sessions</span>\n<span class='output'>    export          Export a session transcript</span>\n\n<span class='prompt'>$</span> python claude_session_tool.py search --help\n<span class='output'>usage: claude_session_tool.py search [-h] --query QUERY [--cwd CWD]</span>\n<span class='output'>                                     [--limit LIMIT] [--json]</span>\n<span class='output'></span>\n<span class='output'>options:</span>\n<span class='output'>  --query QUERY   Natural-language session hint (required)</span>\n<span class='output'>  --cwd CWD       Current working directory for rank boosting</span>\n<span class='output'>  --limit LIMIT   Maximum results to return (default: 8)</span>\n<span class='output'>  --json          Emit JSON instead of a text shortlist</span>"
+          },
+          {
+            type: "lines",
+            notes: [
+              ["112-115", "Creates the top-level parser. <code class='inline'>description=__doc__</code> reuses the module docstring (line 2) as the help description. <code class='inline'>ArgumentDefaultsHelpFormatter</code> makes <code class='inline'>--help</code> show the default value for every argument."],
+              ["116", "Creates the subparser group. <code class='inline'>dest=\"command\"</code> means the chosen subcommand name lands in <code class='inline'>args.command</code>. <code class='inline'>required=True</code> means running the script with no subcommand is an error."],
+              ["123", "<code class='inline'>required=True</code> on --query means argparse rejects <code class='inline'>search</code> without a query and prints an error."],
+              ["166", "Everything above is just declaration. This single line actually runs the parser, reads sys.argv, and returns the Namespace."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "argparse-subcommands",
+        tab: "argparse",
+        label: "Subcommands in detail",
+        title: "Subcommands let one script do multiple things with different arguments.",
+        summary: "Like how 'git commit' and 'git push' are different commands under 'git', this script has 'search' and 'export' as subcommands, each with their own flags.",
+        range: [109, 166],
+        sections: [
+          {
+            type: "diagram",
+            title: "Parser tree",
+            content: "ArgumentParser (top level)\n\u2502\n\u251c\u2500\u2500 subparsers (dest=\"command\", required=True)\n\u2502   \u2502\n\u2502   \u251c\u2500\u2500 \"search\" parser\n\u2502   \u2502   \u251c\u2500\u2500 --query   (required, type=str)\n\u2502   \u2502   \u251c\u2500\u2500 --cwd     (optional, type=str)\n\u2502   \u2502   \u251c\u2500\u2500 --limit   (optional, type=int, default=8)\n\u2502   \u2502   \u2514\u2500\u2500 --json    (optional, flag, default=False)\n\u2502   \u2502\n\u2502   \u2514\u2500\u2500 \"export\" parser\n\u2502       \u251c\u2500\u2500 --session              (required, type=str)\n\u2502       \u251c\u2500\u2500 --format               (optional, choices=[markdown,json])\n\u2502       \u251c\u2500\u2500 --tail                 (optional, type=int, default=0)\n\u2502       \u251c\u2500\u2500 --include-tool-results (optional, flag, default=False)\n\u2502       \u2514\u2500\u2500 --output               (optional, type=str)\n\nWhen you run: tool.py search --query \"auth\"\n  \u2192 only search's arguments are active\n  \u2192 export's --session is irrelevant\n  \u2192 args.command == \"search\""
+          },
+          {
+            type: "confusion",
+            body: "When argparse sees <code class='inline'>--include-tool-results</code>, it converts the dashes to underscores for the attribute name: <code class='inline'>args.include_tool_results</code>. This catches people off guard. The rule: the flag on the command line uses dashes (<code class='inline'>--include-tool-results</code>), but in Python you access it with underscores (<code class='inline'>args.include_tool_results</code>)."
+          },
+          {
+            type: "terminal",
+            title: "What happens when you get it wrong",
+            content: "<span class='comment'># Missing the subcommand entirely:</span>\n<span class='prompt'>$</span> python claude_session_tool.py --query \"auth\"\n<span class='error'>error: the following arguments are required: command</span>\n\n<span class='comment'># Missing a required argument:</span>\n<span class='prompt'>$</span> python claude_session_tool.py search\n<span class='error'>error: the following arguments are required: --query</span>\n\n<span class='comment'># Invalid choice:</span>\n<span class='prompt'>$</span> python claude_session_tool.py export --session abc --format xml\n<span class='error'>error: argument --format: invalid choice: 'xml' (choose from 'markdown', 'json')</span>\n\n<span class='comment'># argparse generates all these error messages automatically.</span>"
+          },
+          {
+            type: "text",
+            title: "action=\"store_true\" explained",
+            body: "When you declare <code class='inline'>add_argument(\"--json\", action=\"store_true\")</code>, it means: this flag takes no value. If the user includes <code class='inline'>--json</code>, set <code class='inline'>args.json = True</code>. If they don't, set it to <code class='inline'>False</code>. Without <code class='inline'>action=\"store_true\"</code>, argparse would expect a value after the flag, like <code class='inline'>--json yes</code>."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["118-121", "<code class='inline'>subparsers.add_parser(\"search\")</code> registers \"search\" as a valid subcommand. The returned object is a full ArgumentParser you add arguments to."],
+              ["125-130", "<code class='inline'>type=int</code> means argparse converts the string \"5\" to the integer 5. If the user types <code class='inline'>--limit abc</code>, argparse prints an error."],
+              ["131-135", "<code class='inline'>action=\"store_true\"</code> makes --json a boolean flag. No value after it."],
+              ["147-152", "<code class='inline'>choices=(\"markdown\", \"json\")</code> restricts --format to exactly those two strings. Anything else is rejected with an error."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "argparse-namespace",
+        tab: "argparse",
+        label: "Using the parsed result",
+        title: "After parsing, you read args.command to decide what to do.",
+        summary: "parse_args() returns a Namespace. main() reads args.command and branches into the right workflow. Each branch only accesses the attributes that its subcommand defined.",
+        range: [599, 642],
+        sections: [
+          {
+            type: "terminal",
+            title: "What the Namespace looks like",
+            content: "<span class='comment'># For: tool.py search --query \"auth\" --limit 3</span>\nNamespace(command='search', query='auth', cwd=None, limit=3, json=False)\n\n<span class='comment'># For: tool.py export --session abc123 --format json --tail 10</span>\nNamespace(command='export', session='abc123', format='json', tail=10,\n         include_tool_results=False, output=None)\n\n<span class='comment'># Access them as attributes:</span>\nargs.command            <span class='comment'># 'search'</span>\nargs.query              <span class='comment'># 'auth'</span>\nargs.limit              <span class='comment'># 3 (an int, not a string)</span>\nargs.json               <span class='comment'># False (a bool)</span>"
+          },
+          {
+            type: "confusion",
+            body: "A common mistake: trying to access <code class='inline'>args.session</code> when <code class='inline'>args.command == \"search\"</code>. That attribute doesn't exist on the Namespace because it belongs to the export subparser. You'd get an <code class='inline'>AttributeError</code>. Each subcommand defines its own set of attributes."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["602", "<code class='inline'>args = parse_args()</code> — all parsing and validation happened inside this call. If anything was wrong, the script already exited with an error message. If we reach this line, the input is valid."],
+              ["603", "<code class='inline'>if args.command == \"search\"</code> — this string matches the first argument to <code class='inline'>add_parser(\"search\")</code> on line 116. It's the subcommand name."],
+              ["605", "<code class='inline'>args.json</code> is either True or False. This is the result of <code class='inline'>action=\"store_true\"</code>."],
+              ["628-638", "The export branch accesses <code class='inline'>args.session</code>, <code class='inline'>args.format</code>, <code class='inline'>args.tail</code>, <code class='inline'>args.include_tool_results</code>, and <code class='inline'>args.output</code> — all defined by the export subparser."],
+              ["641-642", "The <code class='inline'>if __name__ == \"__main__\"</code> guard. When you run <code class='inline'>python tool.py</code>, Python sets <code class='inline'>__name__</code> to <code class='inline'>\"__main__\"</code>, so <code class='inline'>main()</code> runs. When another file does <code class='inline'>import claude_session_tool</code>, <code class='inline'>__name__</code> is <code class='inline'>\"claude_session_tool\"</code>, so <code class='inline'>main()</code> doesn't run. This lets you reuse functions from the file without triggering the CLI."]
+            ]
+          }
+        ]
+      },
+
+      // ── TAB: Data ──
+      {
+        id: "data-discovery",
+        tab: "data",
+        label: "Finding session files",
+        title: "discover_session_files() walks two directories and tags each file.",
+        summary: "Claude stores sessions in ~/.claude/projects/ and ~/.claude/transcripts/. This function finds all .jsonl files in both and labels each with its source kind.",
+        range: [169, 186],
+        sections: [
+          {
+            type: "diagram",
+            title: "Directory layout",
+            content: "~/.claude/\n\u251c\u2500\u2500 projects/\n\u2502   \u251c\u2500\u2500 myapp/\n\u2502   \u2502   \u251c\u2500\u2500 session-abc.jsonl         \u2192 kind = \"project\"\n\u2502   \u2502   \u2514\u2500\u2500 subagents/\n\u2502   \u2502       \u2514\u2500\u2500 agent-def.jsonl       \u2192 kind = \"subagent\"\n\u2502   \u2514\u2500\u2500 otherproject/\n\u2502       \u2514\u2500\u2500 session-ghi.jsonl         \u2192 kind = \"project\"\n\u2514\u2500\u2500 transcripts/\n    \u251c\u2500\u2500 session-abc.jsonl             \u2192 kind = \"transcript\"\n    \u2514\u2500\u2500 session-xyz.jsonl             \u2192 kind = \"transcript\"\n\nNotice session-abc appears twice (projects + transcripts).\nThat's why the search function deduplicates later."
+          },
+          {
+            type: "text",
+            title: "rglob vs glob",
+            body: "<code class='inline'>rglob(\"*.jsonl\")</code> searches recursively — it goes into every subdirectory. <code class='inline'>glob(\"*.jsonl\")</code> only looks at the immediate directory. The projects folder has nested subdirectories (subagents/), so it needs rglob. The transcripts folder is flat, so glob is enough."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["170", "<code class='inline'>Path.home()</code> returns the user's home directory as a Path object. On macOS that's <code class='inline'>/Users/yourname</code>, on Linux it's <code class='inline'>/home/yourname</code>."],
+              ["171", "The return type is <code class='inline'>list[tuple[Path, str]]</code> — a list of pairs. Each pair is (file path, source kind string)."],
+              ["174", "<code class='inline'>if projects_root.exists()</code> — if the directory doesn't exist, skip it silently. This prevents a crash on machines where Claude hasn't been used."],
+              ["176", "<code class='inline'>\"subagents\" in path.parts</code> checks if any component of the path is literally \"subagents\". <code class='inline'>path.parts</code> is a tuple like <code class='inline'>('/', 'Users', 'me', '.claude', 'projects', 'myapp', 'subagents', 'file.jsonl')</code>."],
+              ["184", "Returns a flat list. No side effects. The function doesn't read file contents — that's a separate concern."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "data-jsonl",
+        tab: "data",
+        label: "Reading JSONL files",
+        title: "load_json_lines() is a generator that yields one JSON object per line.",
+        summary: "JSONL files have one JSON object per line. This function reads them one at a time, skips blank lines and malformed JSON, and yields each parsed dict.",
+        range: [189, 200],
+        sections: [
+          {
+            type: "text",
+            title: "What yield does (and why it matters)",
+            body: "A function with <code class='inline'>yield</code> is a generator. Instead of building a huge list and returning it all at once, it pauses after each <code class='inline'>yield</code> and hands one item to the caller. The caller processes that item, then asks for the next one. The function resumes from where it paused.<br><br>This matters because session files can be large. If you loaded every JSON object into a list first, you'd use a lot of memory. With <code class='inline'>yield</code>, only one line is in memory at a time."
+          },
+          {
+            type: "terminal",
+            title: "Step-by-step execution",
+            content: "<span class='comment'># Imagine a file with 3 lines:</span>\n{\"role\": \"user\", \"text\": \"hello\"}\n\n{\"role\": \"assistant\", \"text\": \"hi\"}\n\n<span class='comment'># What happens when you iterate:</span>\nfor record in load_json_lines(path):\n    print(record)\n\n<span class='comment'># Step 1: opens file, reads line 1, parses JSON, yields it</span>\n<span class='comment'>#   \u2192 caller prints {\"role\": \"user\", \"text\": \"hello\"}</span>\n<span class='comment'># Step 2: reads line 2, it's blank, skips it (continue)</span>\n<span class='comment'># Step 3: reads line 3, parses JSON, yields it</span>\n<span class='comment'>#   \u2192 caller prints {\"role\": \"assistant\", \"text\": \"hi\"}</span>\n<span class='comment'># Step 4: file is exhausted, generator ends, loop exits</span>"
+          },
+          {
+            type: "confusion",
+            body: "<code class='inline'>errors=\"replace\"</code> on line 190 tells Python to replace undecodable bytes with a replacement character instead of crashing. Session files are supposed to be UTF-8, but sometimes tools write weird bytes. This one argument prevents the entire scan from dying on a single corrupt file."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["190", "<code class='inline'>path.open(\"r\", encoding=\"utf-8\", errors=\"replace\")</code> — opens in text mode, UTF-8, with error tolerance. The <code class='inline'>with</code> statement ensures the file is closed even if an exception occurs."],
+              ["194", "<code class='inline'>line = line.strip()</code> removes leading and trailing whitespace including newlines."],
+              ["197-198", "<code class='inline'>try: yield json.loads(line)</code> — parse one line as JSON. If it works, yield the result. If it doesn't, the except on line 197 catches the error and continues to the next line instead of crashing."],
+              ["200", "<code class='inline'>continue</code> inside the except block means \"skip this bad line, go to the next one\". The generator keeps running."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "data-extract",
+        tab: "data",
+        label: "Extracting text from messages",
+        title: "extract_text() handles two different content formats.",
+        summary: "Claude messages can have content as a plain string OR as a list of typed blocks (text blocks, tool results, etc). This function normalizes both into a single string.",
+        range: [203, 225],
+        sections: [
+          {
+            type: "terminal",
+            title: "The two content shapes",
+            content: "<span class='comment'># Shape 1: simple string</span>\n{\"role\": \"user\", \"content\": \"Fix the login bug\"}\n<span class='comment'># extract_text returns: \"Fix the login bug\"</span>\n\n<span class='comment'># Shape 2: list of content blocks</span>\n{\"role\": \"assistant\", \"content\": [\n    {\"type\": \"text\", \"text\": \"I'll fix that now.\"},\n    {\"type\": \"tool_use\", \"name\": \"edit\", \"input\": {...}},\n    {\"type\": \"text\", \"text\": \"Done. The bug was in auth.py.\"}\n]}\n<span class='comment'># extract_text returns:</span>\n<span class='comment'># \"I'll fix that now.\\nDone. The bug was in auth.py.\"</span>\n<span class='comment'># (tool_use blocks are skipped unless include_tool_results=True)</span>"
+          },
+          {
+            type: "text",
+            title: "The isinstance checks",
+            body: "The function uses <code class='inline'>isinstance()</code> to figure out which shape it's dealing with. <code class='inline'>isinstance(content, str)</code> handles shape 1. <code class='inline'>isinstance(content, list)</code> handles shape 2. Anything else (None, a number, etc.) returns an empty string. This defensive approach means the function never crashes, even if the data format changes."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["206-207", "If content is already a string, just strip whitespace and return it. Done."],
+              ["209-210", "If it's not a string and not a list, return empty string. This handles None, integers, or any unexpected type."],
+              ["213-215", "Loop over each item in the list. Skip anything that isn't a dict (defensive — the format spec says they're all dicts, but real data is messy)."],
+              ["216-220", "For <code class='inline'>\"type\": \"text\"</code> blocks, extract the text and add it to parts."],
+              ["221-224", "Tool results are only included if the caller asked for them. This keeps transcript output clean by default."],
+              ["225", "Join all collected parts with newlines. The final <code class='inline'>.strip()</code> removes any trailing whitespace."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "data-summarize",
+        tab: "data",
+        label: "Building a session summary",
+        title: "summarize_session() reads an entire file and builds one SessionSummary.",
+        summary: "This is the longest function in the script. It walks every JSON record, extracts timestamps, metadata, and messages, and packs everything into a SessionSummary object.",
+        range: [228, 307],
+        sections: [
+          {
+            type: "text",
+            title: "The accumulator pattern",
+            body: "This function follows a common pattern: create empty state, loop through data, update state on each item, return the final state. Here the state is a <code class='inline'>SessionSummary</code> object plus two helpers: a <code class='inline'>Counter</code> for cwd frequency and a <code class='inline'>list</code> for user messages."
+          },
+          {
+            type: "terminal",
+            title: "Walking through a concrete example",
+            content: "<span class='comment'># Imagine a session file with 4 JSONL records:</span>\n{\"sessionId\": \"abc\", \"timestamp\": \"2026-03-18T09:00:00Z\", \"cwd\": \"/home/me/app\"}\n{\"type\": \"ai-title\", \"aiTitle\": \"Fix login bug\", \"timestamp\": \"2026-03-18T09:00:01Z\"}\n{\"message\": {\"role\": \"user\", \"content\": \"Fix the OAuth flow\"}, \"timestamp\": \"2026-03-18T09:01:00Z\", \"cwd\": \"/home/me/app\"}\n{\"message\": {\"role\": \"assistant\", \"content\": \"Done.\"}, \"timestamp\": \"2026-03-18T09:02:00Z\"}\n\n<span class='comment'># After summarize_session runs:</span>\nsummary.session_id      = \"abc\"\nsummary.title           = \"Fix login bug\"\nsummary.cwd             = \"/home/me/app\"     <span class='comment'># appeared 2x, most common</span>\nsummary.first_timestamp = \"2026-03-18T09:00:00Z\"\nsummary.last_timestamp  = \"2026-03-18T09:02:00Z\"\nsummary.first_user_text = \"Fix the OAuth flow\"\nsummary.message_count   = 2\nsummary.user_count      = 1\nsummary.assistant_count = 1\nsummary.entries         = [MessageEntry(\"user\",...), MessageEntry(\"assistant\",...)]"
+          },
+          {
+            type: "confusion",
+            body: "Why is <code class='inline'>summary</code> initialized to <code class='inline'>None</code> instead of being created right away? Because the session ID comes from the first record. Line 238-241 tries three different keys (<code class='inline'>sessionId</code>, <code class='inline'>session_id</code>, or the filename) because Claude's file format changed over time. The summary can only be created once we know the session ID."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["236", "<code class='inline'>Counter[str]</code> counts how many times each cwd string appears. Later (line 299-300), the most common one becomes the session's cwd."],
+              ["241-244", "The fallback chain: try <code class='inline'>sessionId</code>, then <code class='inline'>session_id</code>, then use the filename. The <code class='inline'>or</code> operator returns the first truthy value."],
+              ["253-258", "Timestamps are compared as strings. This works because ISO 8601 timestamps sort correctly as strings — \"2026-03-18\" comes after \"2026-03-17\" alphabetically."],
+              ["267-268", "The <code class='inline'>Counter</code> counts cwd occurrences. If a session records cwd on every message, the most frequent one is probably the real project directory."],
+              ["291", "<code class='inline'>not record.get(\"isMeta\")</code> — some records are metadata injected by Claude, not actual user input. This filter ensures the \"first user text\" is something the human actually typed."],
+              ["303-304", "<code class='inline'>most_common(1)</code> returns a list like <code class='inline'>[(\"/home/me/app\", 3)]</code>. The <code class='inline'>[0][0]</code> extracts the path string."]
+            ]
+          }
+        ]
+      },
+
+      // ── TAB: Search ──
+      {
+        id: "search-tokenize",
+        tab: "search",
+        label: "Tokenization",
+        title: "tokenize() and session_search_blob() prepare text for matching.",
+        summary: "Before you can compare a search query to a session, both need to be broken into normalized tokens. These two functions handle that.",
+        range: [310, 340],
+        sections: [
+          {
+            type: "terminal",
+            title: "What tokenize() does to real input",
+            content: "<span class='prompt'>>>></span> tokenize(\"resume that OAuth session from yesterday\")\n<span class='output'>['oauth', 'yesterday']</span>\n\n<span class='comment'># \"resume\", \"that\", \"session\", \"from\" are all in STOP_WORDS \u2192 removed</span>\n<span class='comment'># \"oauth\" and \"yesterday\" survive</span>\n\n<span class='prompt'>>>></span> tokenize(\"fix auth.py in payments-api\")\n<span class='output'>['fix', 'auth.py', 'payments-api']</span>\n\n<span class='comment'># The regex [a-z0-9][a-z0-9._/-]+ keeps dots, slashes, and dashes</span>\n<span class='comment'># so filenames and paths stay intact as single tokens</span>"
+          },
+          {
+            type: "text",
+            title: "What session_search_blob() produces",
+            body: "For each session, this function concatenates the most searchable fields — title, slug, cwd, basename, branch, first user text, and recent user texts — into one lowercase string. The scoring function compares the query against this blob. It's not a database index; it's just string concatenation that makes all the searchable data accessible in one place."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["315", "The regex <code class='inline'>r\"[a-z0-9][a-z0-9._/-]+\"</code> matches tokens that start with a letter/digit and can contain dots, underscores, slashes, and dashes. This is designed to preserve things like <code class='inline'>auth.py</code> and <code class='inline'>payments-api</code> as single tokens."],
+              ["316", "Two filters in one line: not in STOP_WORDS and longer than 1 character."],
+              ["320-325", "<code class='inline'>basename_hint()</code> extracts just the last component of a path. <code class='inline'>/home/me/payments-api</code> \u2192 <code class='inline'>payments-api</code>. Used so that search queries can match just the project name."],
+              ["331-340", "The blob includes redundancy on purpose — both the full cwd path and its basename. This means a query of \"payments-api\" matches whether the user remembers the full path or just the folder name."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "search-scoring",
+        tab: "search",
+        label: "The scoring function",
+        title: "score_session() adds up multiple signals to rank a session.",
+        summary: "Instead of one clever algorithm, scoring layers five simple checks: exact phrase match, token overlap, fuzzy similarity, path proximity, and recency. Each adds points, and the reasons are saved for debugging.",
+        range: [378, 433],
+        sections: [
+          {
+            type: "terminal",
+            title: "Scoring a real example",
+            content: "<span class='comment'># Query: \"oauth refactor\"</span>\n<span class='comment'># Session blob: \"fix oauth middleware\\n/home/me/payments-api\\npayments-api\\nmain\\n...\"</span>\n\n<span class='comment'>Signal 1: Exact phrase match</span>\n  \"oauth refactor\" in blob?  \u2192 No (blob has \"oauth\" but not \"oauth refactor\")\n  Score: +0\n\n<span class='comment'>Signal 2: Token overlap</span>\n  query tokens: [\"oauth\", \"refactor\"]\n  blob tokens:  {\"fix\", \"oauth\", \"middleware\", \"payments-api\", \"main\", ...}\n  overlap:      [\"oauth\"]  \u2192 1 token \u00d7 12.0 = +12.0\n\n<span class='comment'>Signal 3: Fuzzy similarity (SequenceMatcher)</span>\n  ratio = 0.31  \u2192 0.31 \u00d7 35.0 = +10.9\n\n<span class='comment'>Signal 4: Path proximity</span>\n  cwd matches current directory?  \u2192 Yes, exact match \u2192 +50.0\n\n<span class='comment'>Signal 5: Recency</span>\n  Last active 3 hours ago  \u2192 within 24h \u2192 +20.0\n\n<span class='comment'>Total: 0 + 12.0 + 10.9 + 50.0 + 20.0 = 92.9</span>\n<span class='comment'>Reasons: [\"token match: oauth\", \"fuzzy similarity 0.31\", \"same cwd\", \"recent activity\"]</span>"
+          },
+          {
+            type: "text",
+            title: "SequenceMatcher explained",
+            body: "<code class='inline'>SequenceMatcher(None, a, b).ratio()</code> returns a float from 0.0 to 1.0 measuring how similar two strings are. It finds the longest common subsequences. A ratio of 1.0 means identical strings. A ratio of 0.0 means nothing in common. The threshold of 0.2 filters out extremely weak matches. The multiplier of 35.0 scales the 0-1 range into a score that's meaningful alongside the other signals."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["381-384", "Prepare the inputs once: lowercase the query, tokenize both sides, convert blob tokens to a set for O(1) lookup."],
+              ["389-391", "Exact phrase match: does the entire query appear verbatim in the blob? This is the strongest signal (80 points) because it means the user remembered exact words from the session."],
+              ["393-397", "Token overlap: how many query words appear in the blob? Capped at 48 points to prevent a many-word query from dominating. <code class='inline'>overlap[:4]</code> limits the reason string to 4 tokens for readability."],
+              ["406-424", "Path comparison has three tiers: exact same directory (50 pts), one is a parent of the other (25 pts), or just the folder name matches (10 pts). This handles cases like searching from a subdirectory of the project."],
+              ["431-433", "The score and reasons are stored directly on the session object. This is intentional — it means the UI can show why each result ranked where it did."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "search-recency",
+        tab: "search",
+        label: "Recency scoring",
+        title: "parse_timestamp() and recency_score() turn timestamps into bonus points.",
+        summary: "A session from 2 hours ago is more likely to be what you want than one from 3 months ago. These functions convert timestamps into stepped bonus points.",
+        range: [343, 375],
+        sections: [
+          {
+            type: "diagram",
+            title: "Recency bands",
+            content: "Age of session          Bonus points\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\u2264 24 hours              +20.0\n\u2264 7 days                +12.0\n\u2264 30 days               +6.0\n> 30 days               +0.0\n\nThese are stepped, not linear. A session from\n23 hours ago gets 20 points. One from 25 hours\nago gets 12. The drop is intentional \u2014 \"today\"\nis a much stronger signal than \"this week\"."
+          },
+          {
+            type: "confusion",
+            body: "Line 344 does <code class='inline'>value.replace(\"Z\", \"+00:00\")</code>. Why? Because <code class='inline'>datetime.fromisoformat()</code> in Python 3.10 doesn't understand the \"Z\" suffix for UTC. It needs the explicit <code class='inline'>+00:00</code> format. This is a well-known Python gotcha — the ISO 8601 standard allows \"Z\" but Python's parser didn't support it until 3.11."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["343-352", "<code class='inline'>parse_timestamp()</code> returns <code class='inline'>None</code> for bad input instead of raising an exception. This keeps the scoring function simple — it just checks <code class='inline'>if dt is None: return 0.0</code>."],
+              ["361-367", "The age calculation: subtract the session time from now (both in UTC), convert to hours, and clamp to non-negative. The <code class='inline'>max(..., 0.0)</code> guards against clock skew where a timestamp is slightly in the future."],
+              ["369-375", "Each <code class='inline'>if</code> returns immediately. Once a band matches, the function exits. This is equivalent to an if/elif chain but reads more naturally as a series of cutoffs."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "search-orchestration",
+        tab: "search",
+        label: "Search orchestration",
+        title: "search_sessions() ties discovery, parsing, scoring, and deduplication together.",
+        summary: "This function is the pipeline: discover files \u2192 summarize each \u2192 score each \u2192 keep the best per session ID \u2192 sort \u2192 return top N.",
+        range: [459, 478],
+        sections: [
+          {
+            type: "text",
+            title: "Why deduplication is needed",
+            body: "The same session can appear in multiple files \u2014 once in <code class='inline'>~/.claude/projects/</code> and again in <code class='inline'>~/.claude/transcripts/</code>. Without deduplication, the same session would appear multiple times in search results. The <code class='inline'>best_by_session</code> dict keeps only one entry per session ID, replacing it when a better version is found."
+          },
+          {
+            type: "terminal",
+            title: "The deduplication decision",
+            content: "<span class='comment'># Session \"abc\" found in two files:</span>\n\n<span class='comment'># File 1: projects/myapp/abc.jsonl (kind=\"project\", score=85.0, 12 entries)</span>\n<span class='comment'># File 2: transcripts/abc.jsonl    (kind=\"transcript\", score=85.0, 8 entries)</span>\n\n<span class='comment'># should_replace_summary checks three things in order:</span>\n<span class='comment'># 1. Higher score? 85.0 == 85.0 \u2192 no, tie</span>\n<span class='comment'># 2. Higher source priority? project=3 > transcript=2 \u2192 yes! Replace.</span>\n<span class='comment'># 3. (Would only check if priority also tied: more entries?)</span>\n\n<span class='comment'># Result: the \"project\" version wins.</span>"
+          },
+          {
+            type: "lines",
+            notes: [
+              ["462", "<code class='inline'>best_by_session</code> is a dict mapping session ID \u2192 best SessionSummary seen so far."],
+              ["463-467", "For each file: summarize it, score it, skip if score is 0."],
+              ["469-474", "If we've already seen this session ID, use <code class='inline'>should_replace_summary()</code> to decide whether the new one is better. If so, replace."],
+              ["477", "The sort key is a tuple: <code class='inline'>(score, last_timestamp)</code>. Tuples sort left to right, so sessions with the same score are broken by recency."],
+              ["478", "Slice to the requested limit. If there are 50 results but limit is 8, only the top 8 are returned."]
+            ]
+          }
+        ]
+      },
+      {
+        id: "search-output",
+        tab: "search",
+        label: "Export and output",
+        title: "Four small functions handle all the output formats.",
+        summary: "text_preview() makes terminal lines, export_markdown() and export_json() make full transcripts, and write_output() handles stdout vs file.",
+        range: [481, 596],
+        sections: [
+          {
+            type: "terminal",
+            title: "What each output looks like",
+            content: "<span class='comment'># text_preview() \u2014 one line per result in search mode:</span>\n<span class='output'>Fix login bug | 2026-03-18T21:14Z | cwd=payments-api | score=92.9 | session=abc123 | token match: oauth; same cwd; recent activity</span>\n\n<span class='comment'># export_markdown() \u2014 full transcript:</span>\n<span class='output'># Claude Session Export: Fix login bug</span>\n<span class='output'></span>\n<span class='output'>- Session ID: `abc123`</span>\n<span class='output'>- CWD: `/home/me/payments-api`</span>\n<span class='output'>- Last activity: `2026-03-18T21:14:00Z`</span>\n<span class='output'></span>\n<span class='output'>## User | 2026-03-18T21:10:00Z</span>\n<span class='output'>Fix the OAuth middleware to use refresh tokens...</span>\n\n<span class='comment'># export_json() \u2014 machine-readable:</span>\n<span class='output'>{</span>\n<span class='output'>  \"session_id\": \"abc123\",</span>\n<span class='output'>  \"title\": \"Fix login bug\",</span>\n<span class='output'>  \"entries\": [{\"role\": \"user\", \"text\": \"Fix the OAuth...\"}]</span>\n<span class='output'>}</span>"
+          },
+          {
+            type: "text",
+            title: "The --tail flag",
+            body: "<code class='inline'>selected_entries(session, tail)</code> on line 519 handles the --tail flag. If tail is 0 (the default), all entries are returned. If tail is 5, only the last 5 entries are returned using Python's slice notation: <code class='inline'>entries[-5:]</code>. This is useful when a session has hundreds of messages but you only care about the recent ones."
+          },
+          {
+            type: "lines",
+            notes: [
+              ["484", "The fallback chain for display titles: try <code class='inline'>title</code>, then <code class='inline'>slug</code>, then the folder name, then the raw session ID. One of them will always exist."],
+              ["494-521", "<code class='inline'>session_lookup()</code> tries two strategies: first treat the identifier as a file path, then scan all discovered sessions for a matching ID, title, or slug. <code class='inline'>SystemExit</code> prints a clean error message and exits without a traceback."],
+              ["529-531", "This is Python's negative slice: <code class='inline'>entries[-tail:]</code> takes the last N items from the list."],
+              ["587-596", "<code class='inline'>write_output()</code> either writes to a file or to stdout. <code class='inline'>mkdir(parents=True, exist_ok=True)</code> creates any missing parent directories without erroring if they already exist."]
+            ]
+          }
+        ]
+      }
+    ];
+
+    const tabs = [
+      { id: "basics", label: "Basics" },
+      { id: "argparse", label: "argparse" },
+      { id: "data", label: "Data Pipeline" },
+      { id: "search", label: "Search & Output" }
+    ];
+
+    // ── State & DOM ──
+    const codeLines = sourceCode.split("\n");
+    const state = { activeTab: "basics", activeLessonId: "basics-orientation" };
+
+    const tabsEl = document.getElementById("tabs");
+    const lessonListEl = document.getElementById("lesson-list");
+    const codeWindowEl = document.getElementById("code-window");
+    const explainBodyEl = document.getElementById("explain-body");
+    const codeCaptionEl = document.getElementById("code-caption");
+    const lessonKickerEl = document.getElementById("lesson-kicker");
+
+    function escapeHtml(value) {
+      return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    }
+
+    function currentLessons() {
+      return lessons.filter((l) => l.tab === state.activeTab);
+    }
+
+    function activeLesson() {
+      return lessons.find((l) => l.id === state.activeLessonId) || lessons[0];
+    }
+
+    function renderTabs() {
+      tabsEl.innerHTML = tabs.map((tab) => `
+        <button class="tab-btn ${tab.id === state.activeTab ? "active" : ""}" data-tab="${tab.id}">
+          ${tab.label}
+        </button>
+      `).join("");
+    }
+
+    function renderLessonList() {
+      const visible = currentLessons();
+      if (!visible.some((l) => l.id === state.activeLessonId)) {
+        state.activeLessonId = visible[0].id;
+      }
+      lessonListEl.innerHTML = visible.map((lesson) => `
+        <button class="lesson-btn ${lesson.id === state.activeLessonId ? "active" : ""}" data-lesson="${lesson.id}">
+          <small>${lesson.label} · lines ${lesson.range[0]}-${lesson.range[1]}</small>
+          <strong>${lesson.title}</strong>
+          <span>${lesson.summary}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderCode() {
+      const lesson = activeLesson();
+      const [start, end] = lesson.range;
+      codeWindowEl.innerHTML = codeLines.map((line, index) => {
+        const lineNo = index + 1;
+        const active = lineNo >= start && lineNo <= end;
+        return `
+          <div class="code-line ${active ? "active" : "dimmed"}" data-line="${lineNo}">
+            <span class="num">${lineNo}</span>
+            <span>${escapeHtml(line)}</span>
+          </div>
+        `;
+      }).join("");
+
+      codeCaptionEl.textContent = `${lesson.label} · lines ${start}-${end}`;
+      const target = codeWindowEl.querySelector(`[data-line="${start}"]`);
+      if (target) target.scrollIntoView({ block: "center" });
+    }
+
+    // ── Explanation renderer ──
+    // Each lesson has a `sections` array with typed blocks.
+    function renderExplanation() {
+      const lesson = activeLesson();
+      lessonKickerEl.textContent = lesson.summary;
+
+      let html = `
+        <div class="range-pill">Lines ${lesson.range[0]}-${lesson.range[1]}</div>
+        <h3 class="big-takeaway">${lesson.title}</h3>
+        <p class="panel-copy">${lesson.summary}</p>
+      `;
+
+      for (const section of lesson.sections) {
+        switch (section.type) {
+          case "text":
+            html += `
+              <section class="card">
+                <h3>${section.title}</h3>
+                <p>${section.body}</p>
+              </section>
+            `;
+            break;
+
+          case "terminal":
+            html += `
+              <section class="card">
+                <h3>${section.title}</h3>
+                <div class="terminal">${section.content}</div>
+              </section>
+            `;
+            break;
+
+          case "diagram":
+            html += `
+              <section class="card">
+                <h3>${section.title}</h3>
+                <div class="diagram">${section.content}</div>
+              </section>
+            `;
+            break;
+
+          case "confusion":
+            html += `
+              <div class="confusion">
+                <strong>Common confusion</strong>
+                <p>${section.body}</p>
+              </div>
+            `;
+            break;
+
+          case "lines":
+            html += `
+              <section class="card">
+                <h3>Line by line</h3>
+                <div class="line-notes">
+                  ${section.notes.map(([range, text]) => `
+                    <div class="line-note">
+                      <strong>Line ${range}</strong>
+                      <p>${text}</p>
+                    </div>
+                  `).join("")}
+                </div>
+              </section>
+            `;
+            break;
+        }
+      }
+
+      explainBodyEl.innerHTML = html;
+    }
+
+    // ── Events ──
+    function bindEvents() {
+      tabsEl.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-tab]");
+        if (!button) return;
+        state.activeTab = button.dataset.tab;
+        const firstLesson = currentLessons()[0];
+        if (firstLesson) state.activeLessonId = firstLesson.id;
+        render();
+      });
+
+      lessonListEl.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-lesson]");
+        if (!button) return;
+        state.activeLessonId = button.dataset.lesson;
+        render();
+      });
+    }
+
+    function render() {
+      renderTabs();
+      renderLessonList();
+      renderCode();
+      renderExplanation();
+    }
+
+    bindEvents();
+    render();
+  </script>
+</body>
+</html>
