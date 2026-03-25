@@ -1,6 +1,9 @@
 ---
 name: resume-claude-here
 description: Recover a prior Claude Code session from natural-language hints, search Claude history by topic/date/project, and import the useful context into the current conversation. Use this for Claude session handoff, transcript recovery, context transfer into Codex or another agent, and continuing after Claude hit a usage or rate limit.
+metadata:
+  author: kundeng
+  version: "1.0.0"
 ---
 
 # Continue Claude Here
